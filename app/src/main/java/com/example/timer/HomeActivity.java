@@ -10,6 +10,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.media.MediaPlayer;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 
@@ -120,6 +123,14 @@ public class HomeActivity extends AppCompatActivity {
                 timerTextView.setText("00:00:00");
                 Toast.makeText(HomeActivity.this, "Timer finished", Toast.LENGTH_SHORT).show();
                 // TODO: Play sound (handle sound based on user preference)
+                // Get the current end time
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+                String endTime = sdf.format(new Date());
+
+                // Save the timer duration and end time to the database
+                String duration = String.format("%02d:%02d:%02d", hours, minutes, seconds);
+                TimeDatabaseHelper dbHelper = new TimeDatabaseHelper(HomeActivity.this);
+                dbHelper.insertTimerData(duration, endTime);
                 playSelectedSound(); // Play the sound when timer finishes
             }
         }.start();
