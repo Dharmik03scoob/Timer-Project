@@ -1,5 +1,6 @@
 package com.example.timer;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -8,7 +9,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.media.MediaPlayer;
 import androidx.appcompat.app.AppCompatActivity;
+import android.content.SharedPreferences;
 
 public class HomeActivity extends AppCompatActivity {
 
@@ -19,6 +22,8 @@ public class HomeActivity extends AppCompatActivity {
     private boolean isTimerRunning = false;
     private long timeInMillis; // Total time in milliseconds
     private long timeLeftInMillis; // Remaining time in milliseconds
+    private MediaPlayer mediaPlayer;
+    private int selectedSoundId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,6 +39,8 @@ public class HomeActivity extends AppCompatActivity {
         pauseButton = findViewById(R.id.pauseButton);
         resetButton = findViewById(R.id.resetButton);
         soundSettingsButton = findViewById(R.id.soundSettingsButton);
+        Button historyButton = findViewById(R.id.historyButton);
+
 
         // Start button logic
         startButton.setOnClickListener(new View.OnClickListener() {
@@ -72,6 +79,18 @@ public class HomeActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+
+        historyButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(HomeActivity.this, HistoryActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        // Load the selected sound from SharedPreferences
+        SharedPreferences preferences = getSharedPreferences("SoundPrefs", Context.MODE_PRIVATE);
+        selectedSoundId = preferences.getInt("selectedSound", R.raw.sound1); // Default to sound1 if not set
     }
 
     // Method to start the timer
@@ -101,6 +120,7 @@ public class HomeActivity extends AppCompatActivity {
                 timerTextView.setText("00:00:00");
                 Toast.makeText(HomeActivity.this, "Timer finished", Toast.LENGTH_SHORT).show();
                 // TODO: Play sound (handle sound based on user preference)
+                playSelectedSound(); // Play the sound when timer finishes
             }
         }.start();
 
@@ -133,6 +153,15 @@ public class HomeActivity extends AppCompatActivity {
         timerTextView.setText(timeLeftFormatted);
     }
 
+    // Method to play the selected sound
+    private void playSelectedSound() {
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+        }
+        mediaPlayer = MediaPlayer.create(this, selectedSoundId);
+        mediaPlayer.start();
+    }
+
 
     // Utility method to get integer value from EditText
     private int getIntFromEditText(EditText editText) {
@@ -141,5 +170,13 @@ public class HomeActivity extends AppCompatActivity {
             return 0;
         }
         return Integer.parseInt(input);
+    }
+
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
     }
 }
