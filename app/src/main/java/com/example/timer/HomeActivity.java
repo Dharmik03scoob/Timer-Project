@@ -44,12 +44,12 @@ public class HomeActivity extends AppCompatActivity {
         soundSettingsButton = findViewById(R.id.soundSettingsButton);
         Button historyButton = findViewById(R.id.historyButton);
 
-
         // Start button logic
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (!isTimerRunning) {
+                    // Start or resume the timer
                     startTimer();
                 }
             }
@@ -83,6 +83,10 @@ public class HomeActivity extends AppCompatActivity {
             }
         });
 
+        // Load the selected sound from SharedPreferences
+        SharedPreferences preferences = getSharedPreferences("SoundPrefs", Context.MODE_PRIVATE);
+        selectedSoundId = preferences.getInt("selectedSound", R.raw.sound1); // Default to sound1 if not set
+
         historyButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -90,27 +94,26 @@ public class HomeActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
-        // Load the selected sound from SharedPreferences
-        SharedPreferences preferences = getSharedPreferences("SoundPrefs", Context.MODE_PRIVATE);
-        selectedSoundId = preferences.getInt("selectedSound", R.raw.sound1); // Default to sound1 if not set
     }
 
-    // Method to start the timer
+    // Method to start the timer or resume it
     private void startTimer() {
         int hours = getIntFromEditText(hoursInput);
         int minutes = getIntFromEditText(minutesInput);
         int seconds = getIntFromEditText(secondsInput);
 
-        if (hours == 0 && minutes == 0 && seconds == 0) {
+        if (hours == 0 && minutes == 0 && seconds == 0 && timeLeftInMillis == 0) {
             Toast.makeText(this, "Please enter a valid time", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        timeInMillis = (hours * 3600 + minutes * 60 + seconds) * 1000;
-        timeLeftInMillis = timeInMillis;
+        // Set the total time if the timer was not started before
+        if (timeLeftInMillis == 0) {
+            timeInMillis = (hours * 3600 + minutes * 60 + seconds) * 1000;
+            timeLeftInMillis = timeInMillis;
+        }
 
-        countDownTimer = new CountDownTimer(timeInMillis, 1000) {
+        countDownTimer = new CountDownTimer(timeLeftInMillis, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 timeLeftInMillis = millisUntilFinished;
@@ -122,16 +125,8 @@ public class HomeActivity extends AppCompatActivity {
                 isTimerRunning = false;
                 timerTextView.setText("00:00:00");
                 Toast.makeText(HomeActivity.this, "Timer finished", Toast.LENGTH_SHORT).show();
-                // TODO: Play sound (handle sound based on user preference)
-                // Get the current end time
-                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-                String endTime = sdf.format(new Date());
-
-                // Save the timer duration and end time to the database
-                String duration = String.format("%02d:%02d:%02d", hours, minutes, seconds);
-                TimeDatabaseHelper dbHelper = new TimeDatabaseHelper(HomeActivity.this);
-                dbHelper.insertTimerData(duration, endTime);
-                playSelectedSound(); // Play the sound when timer finishes
+                // Play sound when timer finishes
+                playSelectedSound();
             }
         }.start();
 
@@ -173,7 +168,6 @@ public class HomeActivity extends AppCompatActivity {
         mediaPlayer.start();
     }
 
-
     // Utility method to get integer value from EditText
     private int getIntFromEditText(EditText editText) {
         String input = editText.getText().toString().trim();
@@ -183,6 +177,7 @@ public class HomeActivity extends AppCompatActivity {
         return Integer.parseInt(input);
     }
 
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         if (mediaPlayer != null) {
